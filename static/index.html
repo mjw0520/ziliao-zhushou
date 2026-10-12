@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>资料助手</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">📚</span>
+    <span class="title">资料助手</span>
+    <span class="subtitle">文件索引 · 搜索 · 表格自动填写</span>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="search">🔍 搜索</button>
+    <button class="tab" data-tab="workbench">🗂 表格工作台</button>
+    <button class="tab" data-tab="fill">📋 表格填写</button>
+    <button class="tab" data-tab="paste">🔗 表格粘贴</button>
+    <button class="tab" data-tab="bid">📄 标书助手</button>
+    <button class="tab" data-tab="lib">📁 文档库</button>
+  </nav>
+  <div class="right-group">
+    <span class="env-badge" id="env-badge" title="解析组件状态">环境检查…</span>
+    <div class="stats" id="stats">—</div>
+    <button id="shutdown-btn" class="small ghost" title="关闭程序">⏻ 退出程序</button>
+    <button id="help-btn" class="small ghost" title="使用说明">❓ 帮助</button>
+  </div>
+</header>
+
+<!-- 环境检查横幅 -->
+<div id="env-banner" class="env-banner hidden">
+  <div class="env-banner-icon">⚠️</div>
+  <div class="env-banner-body">
+    <b>本机缺少以下解析组件，对应的文件格式暂时无法导入</b>
+    <ul id="env-missing-list"></ul>
+    <p class="dim">基础功能（txt / csv 搜索）不受影响。安装需要联网，只需做一次。</p>
+    <div class="env-actions">
+      <button id="env-install-btn" class="small primary">一键安装缺失组件</button>
+      <button id="env-copy-btn" class="small">复制安装命令</button>
+      <button id="env-dismiss-btn" class="small ghost">暂不安装</button>
+    </div>
+    <div id="env-install-result" class="env-result hidden"></div>
+  </div>
+</div>
+
+<main>
+  <!-- ============ 搜索 ============ -->
+  <section id="tab-search" class="tab-panel active">
+    <div class="search-bar">
+      <input id="search-input" type="text" placeholder="输入关键词，如：产品名称、编号、供应商…" autocomplete="off">
+      <select id="search-kind" title="按类型筛选">
+        <option value="">全部类型</option>
+        <option value="sheet">表格</option>
+        <option value="doc">文档</option>
+        <option value="pdf">PDF</option>
+        <option value="slide">演示</option>
+        <option value="image">图片</option>
+      </select>
+      <button id="search-btn" class="primary">搜索</button>
+      <button id="search-clear" class="ghost">清空</button>
+    </div>
+    <div class="search-layout">
+      <div class="results" id="results">
+        <div class="empty-tip" id="results-empty">
+          <p><a class="help-link" data-help="doc">📖 文档/搜索使用说明</a></p>
+          <p>🔍 在上方输入关键词开始搜索</p>
+          <p class="dim">支持中文/英文/数字，标题和正文都会检索；可搜索 Excel 每一行、PDF 每一页、Word/PPT/图片(文件名)。</p>
+        </div>
+      </div>
+      <aside class="side-panel">
+        <div class="side-head">
+          <span>已选记录</span>
+          <span class="badge" id="sel-count">0</span>
+        </div>
+        <div class="side-actions">
+          <button id="copy-selected" class="small">复制</button>
+          <button id="export-selected" class="small primary">导出 Excel</button>
+          <button id="clear-selected" class="small ghost">清空</button>
+        </div>
+        <div class="selected-list" id="selected-list">
+          <p class="dim">搜索后点「选择」把记录加入这里，可复制或导出。</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ 表格工作台 ============ -->
+  <section id="tab-workbench" class="tab-panel">
+    <h3>表格工作台</h3> <a class="help-link" data-help="table">📖 本板块说明</a>
+    <p class="dim">按字段在所有表格里筛选行；或点开某张表浏览、点列头排序、按列过滤。填表/对表请用下方快捷入口。</p>
+
+    <div class="mapping-box">
+      <h4>① 按字段筛选（跨所有表格）</h4>
+      <div class="search-bar">
+        <select id="wb-field" style="flex:none;min-width:150px"><option value="">字段加载中…</option></select>
+        <input id="wb-value" type="text" placeholder="字段值，如：深圳绿联" autocomplete="off">
+        <button id="wb-field-search" class="primary">筛选</button>
+      </div>
+      <div id="wb-field-result" class="dim"></div>
+    </div>
+
+    <div class="mapping-box">
+      <h4>② 表格浏览</h4>
+      <div class="wb-grid">
+        <div class="wb-tables" id="wb-tables"><p class="dim">加载表格列表…</p></div>
+        <div class="wb-rows-wrap">
+          <div class="fill-actions" style="margin-top:0">
+            <span class="dim" id="wb-rows-title">← 选择左侧表格查看行</span>
+            <label style="margin-left:auto">过滤列：<select id="wb-filter-field"><option value="">（全部）</option></select></label>
+            <input id="wb-filter-value" type="text" placeholder="过滤值" style="width:150px" autocomplete="off">
+            <button id="wb-filter-apply" class="small">应用</button>
+            <button id="wb-filter-clear" class="small ghost">清除</button>
+          </div>
+          <div class="review-scroll" style="max-height:46vh">
+            <table class="review-table" id="wb-rows-table">
+              <thead id="wb-rows-head"></thead>
+              <tbody id="wb-rows-body"><tr><td colspan="10" class="dim">尚未选择表格</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fill-actions">
+      <button id="wb-goto-fill" class="primary">📋 表格填写</button>
+      <button id="wb-goto-paste" class="primary">🔗 表格粘贴</button>
+    </div>
+  </section>
+
+  <!-- ============ 表格填写 ============ -->
+  <section id="tab-fill" class="tab-panel">
+    <div class="fill-step" id="fill-step1">
+      <h3>第 1 步 · 上传模板表格</h3>
+      <p class="dim">上传一张 <b>.xlsx</b> 或 <b>.csv</b>，其中一列是“标题/名称”列（如产品名、单据号、姓名），程序会自动从已导入的资料中匹配该列，并把其它字段填到对应列。</p>
+      <div class="dropzone" id="fill-drop">
+        <p>📄 点击或拖拽上传模板表格</p>
+        <p class="dim">支持 .xlsx / .xls / .csv</p>
+        <input type="file" id="fill-file" accept=".xlsx,.xls,.csv" hidden>
+      </div>
+      <div id="fill-file-info" class="file-info hidden"></div>
+      <div class="fill-options">
+        <label>匹配列（标题列）：
+          <select id="fill-title-col"></select>
+        </label>
+        <label>每行候选数：
+          <select id="fill-topk">
+            <option value="1">1</option>
+            <option value="3" selected>3</option>
+            <option value="5">5</option>
+          </select>
+        </label>
+        <button id="fill-match-btn" class="primary">开始匹配</button>
+      </div>
+    </div>
+
+    <div class="fill-step hidden" id="fill-step2">
+      <h3>第 2 步 · 核对候选，选择正确的记录</h3>
+      <p class="dim">每一行已自动挑选最可能的记录；如果有误，请在下拉框里手动选择其它候选或“不匹配”。</p>
+      <div class="mapping-box">
+        <h4>字段映射（模板列 ← 资料字段）</h4>
+        <div id="mapping-editor" class="mapping-grid"></div>
+      </div>
+      <div class="review-scroll">
+        <table class="review-table" id="review-table">
+          <thead><tr>
+            <th>#</th><th>模板标题</th><th>匹配记录（下拉选择）</th><th>匹配度</th>
+          </tr></thead>
+          <tbody id="review-body"></tbody>
+        </table>
+      </div>
+      <div class="fill-actions">
+        <button id="fill-back" class="ghost">← 上一步</button>
+        <button id="fill-export-btn" class="primary">导出填写结果</button>
+      </div>
+      <div id="fill-result" class="file-info hidden"></div>
+    </div>
+  </section>
+
+  <!-- ============ 表格粘贴 ============ -->
+  <section id="tab-paste" class="tab-panel">
+    <h3>从另一个表格粘贴数据（一行 / 一列 / 几行几列）</h3> <a class="help-link" data-help="table">📖 本板块说明</a>
+    <p class="dim">目标表格已有内容，只需要把源表格里的某些列填过来。两种方式：
+      「按匹配列对应」按关键列把两边的行对上号（可逐行核对）；「按行顺序直接复制」一列/几列直接贴过来。</p>
+
+    <div class="paste-upload">
+      <div class="dropzone" id="paste-src-drop">
+        <p>📥 源表格（提供数据）</p>
+        <p class="dim">.xlsx / .xls / .csv</p>
+        <input type="file" id="paste-src-file" accept=".xlsx,.xls,.csv" hidden>
+      </div>
+      <div class="dropzone" id="paste-tgt-drop">
+        <p>📤 目标表格（要填写的，已有内容）</p>
+        <p class="dim">.xlsx / .xls / .csv</p>
+        <input type="file" id="paste-tgt-file" accept=".xlsx,.xls,.csv" hidden>
+      </div>
+    </div>
+    <div id="paste-file-info" class="file-info hidden"></div>
+
+    <div class="fill-options">
+      <label>对应方式：
+        <select id="paste-mode">
+          <option value="match">按匹配列对应（推荐）</option>
+          <option value="row">按行顺序直接复制</option>
+        </select>
+      </label>
+      <label id="paste-src-key-wrap">源匹配列：<select id="paste-src-key"></select></label>
+      <label id="paste-tgt-key-wrap">目标匹配列：<select id="paste-tgt-key"></select></label>
+      <label>候选数：<select id="paste-topk">
+        <option value="1">1</option><option value="3" selected>3</option><option value="5">5</option>
+      </select></label>
+      <label>已有内容：<select id="paste-overwrite">
+        <option value="0">不覆盖（推荐）</option><option value="1">覆盖</option>
+      </select></label>
+      <label>未匹配的源行：<select id="paste-append">
+        <option value="1">追加到目标末尾</option><option value="0">忽略</option>
+      </select></label>
+      <button id="paste-start" class="primary">开始粘贴</button>
+    </div>
+
+    <div class="mapping-box" id="paste-mapping-box" style="display:none">
+      <h4>列映射（勾选要粘贴的列：源列 → 目标列）</h4>
+      <div id="paste-mapping" class="mapping-grid"></div>
+    </div>
+
+    <div class="hidden" id="paste-step2">
+      <h3>核对与导出</h3>
+      <div id="paste-row-note" class="file-info hidden"></div>
+      <div class="review-scroll" id="paste-review-wrap">
+        <table class="review-table">
+          <thead><tr><th>#</th><th>目标行（匹配列值）</th><th>源表格候选（下拉选择）</th><th>匹配度</th></tr></thead>
+          <tbody id="paste-review-body"></tbody>
+        </table>
+      </div>
+      <div class="fill-actions">
+        <button id="paste-back" class="ghost">← 上一步</button>
+        <button id="paste-export" class="primary">导出粘贴结果</button>
+      </div>
+      <div id="paste-result" class="file-info hidden"></div>
+    </div>
+  </section>
+
+  <!-- ============ 标书助手 ============ -->
+  <section id="tab-bid" class="tab-panel">
+    <h3>标书助手（按公司需求自适应生成草稿）</h3> <a class="help-link" data-help="bid">📖 本板块说明</a>
+    <p class="dim">公司档案填一次、上传一份标书模板，系统按模板章节从素材库自动匹配填充，生成可修改的 Word 草稿（报价/承诺/盖章务必人工核对）。</p>
+
+    <div class="bid-grid">
+      <div class="bid-card">
+        <h4>① 公司档案（填一次，自动代入所有标书）</h4>
+        <div class="bid-fields" id="bid-profile-fields"></div>
+        <div class="fill-actions">
+          <button id="bid-profile-save" class="primary small">保存公司档案</button>
+          <span id="bid-profile-msg" class="dim"></span>
+        </div>
+      </div>
+      <div class="bid-card">
+        <h4>② 标书模板 + 项目信息</h4>
+        <div class="dropzone" id="bid-tpl-drop">
+          <p>📄 上传标书模板（.docx，系统自动读取章节结构）</p>
+          <p class="dim">建议用你们公司以前的一份标书/框架文件</p>
+          <input type="file" id="bid-tpl-file" accept=".docx" hidden>
+        </div>
+        <div class="fill-options">
+          <label>项目名称：<input id="bid-proj-name" type="text" placeholder="如：XX单位设备采购项目"></label>
+          <label>招标编号：<input id="bid-tender-no" type="text"></label>
+          <label>招标人：<input id="bid-tenderer" type="text"></label>
+          <button id="bid-parse" class="primary">解析模板</button>
+        </div>
+        <div id="bid-tpl-info" class="file-info hidden"></div>
+      </div>
+    </div>
+
+    <div class="hidden" id="bid-chapters-box">
+      <h4>③ 核对章节（每章选素材或留空）</h4>
+      <p class="dim">「自动匹配」= 从素材库按章节标题找最像的内容；也可改成「用模板原文」或「留空」。</p>
+      <div class="review-scroll">
+        <table class="review-table">
+          <thead><tr><th>章节</th><th>填充方式</th><th>素材候选（自动匹配时选择）</th></tr></thead>
+          <tbody id="bid-chapter-body"></tbody>
+        </table>
+      </div>
+      <div class="fill-actions">
+        <button id="bid-generate" class="primary">生成标书草稿</button>
+      </div>
+      <div id="bid-result" class="file-info hidden"></div>
+    </div>
+  </section>
+
+  <!-- ============ 文档库 ============ -->
+
+
+  <section id="tab-lib" class="tab-panel">
+    <h3>文档库管理</h3> <a class="help-link" data-help="doc">📖 本板块说明</a>
+    <p class="dim">把文件拖进来（或点击选择），支持：txt/md/html、csv/xlsx/xls、docx/doc、pptx/ppt、pdf、图片(png/jpg/…)。图片如需可搜索文字，请在同目录放一个同名 .txt 补充说明，或安装 OCR。</p>
+    <div class="dropzone" id="lib-drop">
+      <p>📂 点击或拖拽文件/文件夹到此处上传（可多选，拖文件夹会连同子文件夹一起导入）</p>
+      <input type="file" id="lib-files" multiple hidden>
+    </div>
+    <div class="lib-toolbar">
+      <button id="lib-scan" class="primary">扫描 data/files 文件夹</button>
+      <span class="dim" id="scan-hint">把文件直接放进程序目录 data/files 后，点这里一键导入</span>
+    </div>
+    <div id="upload-progress" class="dim hidden"></div>
+    <table class="lib-table">
+      <thead><tr>
+        <th>文件名</th><th>类型</th><th>大小</th><th>记录数</th><th>状态</th><th>导入时间</th><th>操作</th>
+      </tr></thead>
+      <tbody id="lib-body">
+        <tr><td colspan="7" class="dim">暂无文件</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <h4 id="modal-title"></h4>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button id="modal-close" class="primary">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

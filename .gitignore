@@ -1,0 +1,30 @@
+# 运行数据（导入的文件、索引、导出的 Excel）——私人数据，不入库
+data/
+
+# 打包产物
+*.exe
+*.zip
+build_win/
+build_win7/
+build_pkg/
+build/
+dist/
+*.spec
+*.notanexecutable
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 系统 / 编辑器
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+# 本地开发笔记
+开发笔记.md
