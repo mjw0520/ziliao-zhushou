@@ -48,7 +48,8 @@
 
 ## ⬇️ 下载
 
-到本仓库的 **[Releases](../../releases)** 页面下载：
+- **GitHub Releases**：<https://github.com/mjw0520/ziliao-zhushou/releases>
+- **Gitee Releases（国内访问更快）**：<https://gitee.com/majunwei0520/ziliao-zhushou/releases>
 
 | 版本 | 适用系统 | 文件 |
 | --- | --- | --- |
